@@ -54,3 +54,8 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Uploads
+/uploads
+build_log.txt
+delivery-app-a3967-firebase-adminsdk-fbsvc-f4ec31e06e.json

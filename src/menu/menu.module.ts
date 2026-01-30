@@ -10,5 +10,6 @@ import { Dish, DishSchema } from './schemas/dish.schema';
   ],
   controllers: [MenuController],
   providers: [MenuService],
+  exports: [MenuService],
 })
 export class MenuModule {}

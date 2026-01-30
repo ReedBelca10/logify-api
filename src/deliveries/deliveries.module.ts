@@ -12,5 +12,6 @@ import { Delivery, DeliverySchema } from './schemas/delivery.schema';
   ],
   controllers: [DeliveriesController],
   providers: [DeliveriesService],
+  exports: [DeliveriesService],
 })
 export class DeliveriesModule {}

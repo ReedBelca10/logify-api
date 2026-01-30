@@ -12,6 +12,9 @@ export class Dish extends Document {
   @Prop({ required: true })
   price: number;
 
+  @Prop({ required: false })
+  imageUrl: string;
+
   @Prop({ default: true })
   available: boolean;
 
