@@ -1,281 +1,118 @@
-# API Documentation - Backend de Livraison
+# Logify API
 
-URL de base : `http://localhost:3000`
+English is the canonical API language. The API is designed for the Logify cross-platform delivery application and is available under the `/api` prefix.
 
-## Table des matières
+Base URL: `http://localhost:3000/api`
 
-1. [Authentification](#authentification)
-2. [Utilisateurs](#utilisateurs)
-3. [Livraisons](#livraisons)
+## Authentication
 
----
+Protected routes require:
 
-## Authentification
+```http
+Authorization: Bearer <accessToken>
+```
 
-### Inscription locale
+### Register
 
-Créer un nouvel utilisateur avec email et mot de passe.
+`POST /auth/register`
 
-- **URL** : `/auth/register`
-- **Méthode** : `POST`
-- **Accès** : Public
-
-**Corps de la requête** :
 ```json
 {
-  "name": "Jean Dupont",
-  "email": "jean.dupont@example.com",
-  "password": "motdepasse123",
-  "phoneNumber": "+33612345678" // Optionnel
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "password": "password123"
 }
 ```
 
-**Réponse réussie** (201) :
+New accounts always receive the `CLIENT` role. Roles must not be supplied by public clients.
+
+### Login
+
+`POST /auth/login`
+
 ```json
 {
-  "message": "Inscription réussie",
+  "email": "jane.doe@example.com",
+  "password": "password123"
+}
+```
+
+Successful responses use `accessToken`:
+
+```json
+{
+  "message": "Login successful",
   "user": {
     "id": "64abc123...",
-    "name": "Jean Dupont",
-    "email": "jean.dupont@example.com",
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
     "role": "CLIENT"
   },
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
 }
 ```
 
----
+### Firebase login
 
-### Connexion locale
+`POST /auth/firebase`
 
-Connexion avec email et mot de passe.
-
-- **URL** : `/auth/login`
-- **Méthode** : `POST`
-- **Accès** : Public
-
-**Corps de la requête** :
 ```json
 {
-  "email": "jean.dupont@example.com",
-  "password": "motdepasse123"
+  "firebaseToken": "<firebase-id-token>"
 }
 ```
 
-**Réponse réussie** (200) :
-```json
-{
-  "message": "Connexion réussie",
-  "user": {
-    "id": "64abc123...",
-    "name": "Jean Dupont",
-    "email": "jean.dupont@example.com",
-    "role": "CLIENT",
-    "photoURL": null
-  },
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-}
+### Current profile
+
+`GET /auth/profile`
+
+Returns the authenticated user's profile.
+
+## Delivery requests
+
+Delivery request routes are available under `/delivery-requests`.
+
+| Method | Route | Access | Description |
+| --- | --- | --- | --- |
+| `POST` | `/delivery-requests` | Authenticated | Create a delivery request, optionally with a package photo |
+| `GET` | `/delivery-requests/my-requests` | Client | List the current client's requests |
+| `GET` | `/delivery-requests/my-deliveries` | Driver | List requests assigned to the current driver |
+| `GET` | `/delivery-requests/my-stats` | Driver | Read driver statistics |
+| `GET` | `/delivery-requests/:id` | Authenticated | Read one request |
+| `PUT` | `/delivery-requests/:id/status` | Authenticated | Update a request status |
+| `PUT` | `/delivery-requests/:id/cancel` | Client | Cancel a request |
+| `GET` | `/delivery-requests` | `SUPERADMIN` | List all requests |
+| `GET` | `/delivery-requests/stats` | `SUPERADMIN` | Read global statistics |
+| `PUT` | `/delivery-requests/:id/assign/:idLivreur` | `SUPERADMIN` | Assign a driver |
+
+Request statuses are currently `EN_ATTENTE`, `ASSIGNEE`, `LIVREE`, and `ANNULEE`. These values are persisted API identifiers; clients should translate them for display.
+
+## Orders and menu
+
+The API also exposes `/orders` and `/menu`. Swagger is the executable source of truth while these modules are being expanded:
+
+```text
+http://localhost:3000/api
 ```
 
-**Erreurs possibles** :
-- 401 : Email ou mot de passe incorrect
-- 401 : Compte désactivé
+## Roles
 
----
+| Role | Purpose |
+| --- | --- |
+| `CLIENT` | Creates and tracks personal delivery requests and orders |
+| `LIVREUR` | Handles assigned delivery work |
+| `SUPERADMIN` | Manages users, menus, orders, assignments and global statistics |
 
-### Authentification Firebase
+## Error format
 
-Connexion via Google, Facebook, etc. en utilisant le token Firebase.
-
-- **URL** : `/auth/firebase`
-- **Méthode** : `POST`
-- **Accès** : Public
-
-**Corps de la requête** :
-```json
-{
-  "firebaseToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
-}
-```
-
-**Réponse réussie** (200) :
-```json
-{
-  "message": "Connexion Firebase réussie",
-  "user": {
-    "id": "64abc456...",
-    "name": "Marie Martin",
-    "email": "marie.martin@gmail.com",
-    "role": "CLIENT",
-    "photoURL": "https://lh3.googleusercontent.com/...",
-    "authProvider": "google"
-  },
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-}
-```
-
-**Note** : Si l'utilisateur n'existe pas, il sera créé automatiquement avec le rôle CLIENT.
-
----
-
-### Obtenir le profil
-
-Récupère les informations de l'utilisateur connecté.
-
-- **URL** : `/auth/profile`
-- **Méthode** : `GET`
-- **Accès** : Authentifié (JWT requis)
-- **Header** : `Authorization: Bearer <accessToken>`
-
-**Réponse réussie** (200) :
-```json
-{
-  "id": "64abc123...",
-  "name": "Jean Dupont",
-  "email": "jean.dupont@example.com",
-  "role": "CLIENT",
-  "phoneNumber": "+33612345678",
-  "photoURL": null,
-  "authProvider": "local",
-  "isActive": true
-}
-```
-
----
-
-## Utilisateurs
-
-**Note** : Pour toutes les routes utilisateurs ci-dessous, vous devez inclure le token JWT dans le header :
-```
-Authorization: Bearer <votre_token>
-```
-
----
-
-## Livraisons
-
-Documentation à venir pour les endpoints de livraisons.
-
----
-
-## Gestion des Erreurs
-
-L'API utilise des codes de statut HTTP standards :
-
-- **200 OK** : Requête réussie
-- **201 Created** : Ressource créée avec succès
-- **400 Bad Request** : Données invalides
-- **401 Unauthorized** : Non authentifié ou token invalide
-- **403 Forbidden** : Accès refusé (rôle insuffisant)
-- **404 Not Found** : Ressource non trouvée
-- **409 Conflict** : Conflit (ex: email déjà utilisé)
-- **500 Internal Server Error** : Erreur serveur
-
-**Format des erreurs** :
-```json
-{
-  "statusCode": 401,
-  "message": "Non autorisé",
-  "error": "Unauthorized"
-}
-```
-
-ou pour les erreurs de validation :
 ```json
 {
   "statusCode": 400,
-  "message": [
-    "Le nom est requis",
-    "Email invalide",
-    "Le mot de passe doit avoir au moins 6 caractères"
-  ],
+  "message": ["Email must be valid"],
   "error": "Bad Request"
 }
 ```
 
----
+## Status codes
 
-## Authentification des Requêtes
-
-### Inclure le Token JWT
-
-Pour toutes les routes protégées, incluez le token JWT dans le header :
-
-```bash
-curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6..." \
-  http://localhost:3000/auth/profile
-```
-
-### Obtenir le Frontend
-
-Le token est retourné lors de l'inscription ou de la connexion. Sauvegardez-le localement (localStorage, sessionStorage, ou cookies sécurisés).
-
-```javascript
-// Exemple en JavaScript
-const response = await fetch('http://localhost:3000/auth/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    email: 'jean@example.com',
-    password: 'password123'
-  })
-});
-
-const data = await response.json();
-// Sauvegarder le token
-localStorage.setItem('accessToken', data.accessToken);
-
-// Utiliser le token pour les requêtes suivantes
-const profileResponse = await fetch('http://localhost:3000/auth/profile', {
-  headers: {
-    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-  }
-});
-```
-
----
-
-## Exemples de Requêtes cURL
-
-### Inscription
-
-```bash
-curl -X POST http://localhost:3000/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test User",
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-```
-
-### Connexion
-
-```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-```
-
-### Profil (avec token)
-
-```bash
-curl -X GET http://localhost:3000/auth/profile \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
-```
-
----
-
-## Permissions par Rôle
-
-| Endpoint | CLIENT | LIVREUR | SUPERADMIN |
-|----------|--------|---------|------------|
-| POST /auth/register | ✅ | ✅ | ✅ |
-| POST /auth/login | ✅ | ✅ | ✅ |
-| POST /auth/firebase | ✅ | ✅ | ✅ |
-| GET /auth/profile | ✅ | ✅ | ✅ |
-
-*Plus d'endpoints seront ajoutés pour la gestion des utilisateurs et des livraisons.*
+`200 OK`, `201 Created`, `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `409 Conflict`, and `500 Internal Server Error` are used according to the operation result.

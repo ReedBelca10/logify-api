@@ -20,7 +20,7 @@ export class AuthService {
   ) { }
 
   /**
-   * Inscription locale (email/mot de passe)
+  * Register with an email address and password.
    */
   async register(registerDto: RegisterDto) {
     try {
@@ -36,7 +36,7 @@ export class AuthService {
       const accessToken = this.jwtService.sign(payload);
 
       return {
-        message: 'Inscription réussie',
+        message: 'Registration successful',
         user: {
           id: user._id,
           name: user.name,
@@ -51,18 +51,18 @@ export class AuthService {
   }
 
   /**
-   * Connexion locale (email/mot de passe)
+  * Log in with an email address and password.
    */
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('Email ou mot de passe incorrect');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Votre compte a été désactivé');
+      throw new UnauthorizedException('Your account has been disabled');
     }
 
     const isPasswordValid = await this.usersService.validatePassword(
@@ -70,10 +70,10 @@ export class AuthService {
       password,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email ou mot de passe incorrect');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
-    // Mettre à jour la date de dernière connexion
+    // Update the last login timestamp.
     user.lastLogin = new Date();
     await user.save();
 
@@ -81,7 +81,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
 
     return {
-      message: 'Connexion réussie',
+      message: 'Login successful',
       user: {
         id: user._id,
         name: user.name,
@@ -94,11 +94,11 @@ export class AuthService {
   }
 
   /**
-   * Authentification via Firebase (Google, Facebook, etc.)
+  * Authenticate through Firebase (Google, Apple, or another provider).
    */
   async loginWithFirebase(firebaseToken: string) {
     try {
-      // Vérifier le token Firebase
+      // Verify the Firebase token.
       const decodedToken =
         await this.firebaseService.verifyIdToken(firebaseToken);
 
@@ -106,14 +106,14 @@ export class AuthService {
 
       if (!email) {
         throw new BadRequestException(
-          'L\'email est requis pour l\'authentification',
+          'An email address is required for authentication',
         );
       }
 
-      // Déterminer le provider
+      // Determine the identity provider.
       const provider = decodedToken.firebase.sign_in_provider || 'google';
 
-      // Créer ou mettre à jour l'utilisateur
+      // Create or update the user.
       const user = await this.usersService.createOrUpdateFirebaseUser(
         uid,
         email,
@@ -123,14 +123,14 @@ export class AuthService {
       );
 
       if (!user.isActive) {
-        throw new UnauthorizedException('Votre compte a été désactivé');
+        throw new UnauthorizedException('Your account has been disabled');
       }
 
       const payload = { sub: user._id, email: user.email, role: user.role };
       const accessToken = this.jwtService.sign(payload);
 
       return {
-        message: 'Connexion Firebase réussie',
+        message: 'Firebase login successful',
         user: {
           id: user._id,
           name: user.name,
@@ -146,18 +146,18 @@ export class AuthService {
         throw error;
       }
       throw new UnauthorizedException(
-        `Échec de l'authentification Firebase: ${error.message}`,
+        `Firebase authentication failed: ${error.message}`,
       );
     }
   }
 
   /**
-   * Valider un utilisateur (utilisé par la stratégie JWT)
+  * Validate a user for the JWT strategy.
    */
   async validateUser(userId: string): Promise<User> {
     const user = await this.usersService.findOne(userId);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Utilisateur non valide');
+      throw new UnauthorizedException('Invalid user');
     }
     return user;
   }
